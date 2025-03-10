@@ -1,5 +1,10 @@
 import SideNav from "@/app/ui/dashboard/sidenav";
 
+// PPRを有効にする
+// Suspense で囲まれている   ⇒ 動的レンダリング
+// それ以外                 ⇒ 静的レンダリング
+// export const experimental_ppr = true;
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
