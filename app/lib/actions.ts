@@ -92,3 +92,16 @@ export async function updateInvoice(id: string, formData: FormData) {
   redirect("/dashboard/invoices");
 }
 // --- 更新 ---
+
+// --- 削除 ---
+export async function deleteInvoice(id: string) {
+  await sql`
+    DELETE FROM invoices
+    WHERE id = ${id}
+  `;
+
+  // ここで revalidatePath の意味がわかる
+  // コメントアウトするとキャッシュが効いてしまうため、削除ボタンを押しても画面が更新されない
+  revalidatePath("/dashboard/invoices");
+}
+// --- 削除 ---
