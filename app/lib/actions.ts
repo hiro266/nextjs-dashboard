@@ -31,11 +31,11 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
 export async function createInvoice(formData: FormData) {
   // Tips: FormData.get(props)で個別に取得できるが、多くのフィールドがある場合はObject.formEntries()が便利
-  const rawFormDataBeforeParsed = {
-    customerId: formData.get("customerId"),
-    amount: formData.get("amount"),
-    status: formData.get("status"),
-  };
+  // const rawFormDataBeforeParsed = {
+  //   customerId: formData.get("customerId"),
+  //   amount: formData.get("amount"),
+  //   status: formData.get("status"),
+  // };
 
   // 型検証をしながら強制変換(amountがstringでくるのでnumberに変換)
   const { customerId, amount, status } = CreateInvoice.parse({
@@ -56,10 +56,14 @@ export async function createInvoice(formData: FormData) {
   // console.log(typeof amount);
   // */
 
-  await sql`
+  try {
+    await sql`
     INSERT INTO invoices (customer_id, amount, status, date)
     VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
   `;
+  } catch (error) {
+    console.error(error);
+  }
 
   // /dashboard/invoices のキャッシュをクリア
   // 「この場所の情報は古くなったから、次に誰かがここに来るときは、必ず新しい情報を確認して見せるように」
@@ -82,11 +86,15 @@ export async function updateInvoice(id: string, formData: FormData) {
 
   const amountInCents = amount * 100;
 
-  await sql`
-    UPDATE invoices
-    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-    WHERE id = ${id}
-  `;
+  try {
+    await sql`
+      UPDATE invoices
+      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+      WHERE id = ${id}
+    `;
+  } catch (error) {
+    console.error(error);
+  }
 
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
