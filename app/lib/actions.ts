@@ -18,24 +18,43 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number(),
-  status: z.enum(["pending", "paid"]),
+  customerId: z.string({ invalid_type_error: "customerは必須項目です。" }),
+  amount: z.coerce
+    .number()
+    .gt(0, { message: "0ドル以上の金額を入力してください。" }),
+  status: z.enum(["pending", "paid"], {
+    invalid_type_error: "statusは必須項目です。",
+  }),
   date: z.string(),
 });
+
+export type State = {
+  errors?: {
+    customerId?: string[];
+    amount?: string[];
+    status?: string[];
+  };
+  message?: string | null;
+};
 
 // --- 共通 ---
 
 // --- 作成 ---
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
-export async function createInvoice(formData: FormData) {
-  // Tips: FormData.get(props)で個別に取得できるが、多くのフィールドがある場合はObject.formEntries()が便利
-  // const rawFormDataBeforeParsed = {
-  //   customerId: formData.get("customerId"),
-  //   amount: formData.get("amount"),
-  //   status: formData.get("status"),
-  // };
+export async function createInvoice(prevState: State, formData: FormData) {
+  const validatedFields = CreateInvoice.safeParse({
+    customerId: formData.get("customerId"),
+    amount: formData.get("amount"),
+    status: formData.get("status"),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Missing Fields. Failed to Create Invoice.",
+    };
+  }
 
   // 型検証をしながら強制変換(amountがstringでくるのでnumberに変換)
   const { customerId, amount, status } = CreateInvoice.parse({
@@ -62,7 +81,9 @@ export async function createInvoice(formData: FormData) {
     VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
   `;
   } catch (error) {
-    console.error(error);
+    return {
+      message: "Database Error: Failed to Create Invoice.",
+    };
   }
 
   // /dashboard/invoices のキャッシュをクリア
